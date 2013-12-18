@@ -46,7 +46,8 @@
   <ItemGroup>
     <Compile Include="AssemblyIocContainer.cs" />
     <Compile Include="InterfaceResolver.cs" />
-    <Compile Include="IocContainerUnitTests.cs" />
+    <Compile Include="RegistrationMissingException.cs" />
+    <Compile Include="Tests\IocContainerUnitTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

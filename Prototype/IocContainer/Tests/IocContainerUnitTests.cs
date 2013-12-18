@@ -1,12 +1,13 @@
-﻿#region
+﻿#region Using declarations
 
 using System;
+using System.Collections.Generic;
 using Bridgepoint.Enterprise.Common.IocContainer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 #endregion
 
-namespace IocContainer {
+namespace IocContainer.Tests {
     [TestClass]
     public class IocContainerUnitTests {
         [TestMethod]
@@ -165,21 +166,159 @@ namespace IocContainer {
             Assert.AreEqual(55, resolve1.GetFinalValue());
         }
 
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ConstructChainedResolverClassWithResolver() {
+            // Arrange
+            var resolver = new InterfaceResolver();
+
+            // Act
+            var x = new ChainedResolverClass(resolver);
+
+            // Assert
+            Assert.IsNotNull(x);
+        }
+
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ConstructChainedResolverClassWithoutResolver() {
+            // Arrange
+
+            // Act
+            var chainedResolverClass = new ChainedResolverClass();
+
+            // Assert
+            Assert.IsNotNull(chainedResolverClass);
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ChainedResolverClassWithDefaultConstructorResolves() {
+            // Arrange
+            IChainedResolverClass chainedResolverClass = new ChainedResolverClass();
+
+            // Act
+            IChainedResolverClass newResolver = chainedResolverClass.GetNewChainedResolverClass();
+
+            // Assert
+            Assert.IsNotNull(newResolver);
+            Assert.AreNotSame(chainedResolverClass, newResolver);
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        [ExpectedException(typeof(RegistrationMissingException))]
+        public void ChainedResolverClassWithResolverWithUnregisteredDependencyFails() {
+            // Arrange
+            var resolver = new InterfaceResolver();
+            IChainedResolverClass chainedResolverClass = new ChainedResolverClass(resolver);
+
+            // Act
+            IChainedResolverClass newResolver = chainedResolverClass.GetNewChainedResolverClass();
+
+            // Assert
+            Assert.Fail("Exception expected");
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ChainedResolverClassWithResolverConstructorResolves() {
+            // Arrange
+            var resolver = new InterfaceResolver();
+            resolver.Register<IChainedResolverClass, ChainedResolverClass>();
+            IChainedResolverClass chainedResolverClass = new ChainedResolverClass(resolver);
+
+            // Act
+            IChainedResolverClass newResolver = chainedResolverClass.GetNewChainedResolverClass();
+
+            // Assert
+            Assert.IsNotNull(newResolver);
+            Assert.AreNotSame(chainedResolverClass, newResolver);
+        }
+
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ChainedResolverClassWithDefaultConstructorPropegatesResolverDownward() {
+            // Arrange
+            IChainedResolverClass chainedResolverClass = new ChainedResolverClass();
+
+            // Act
+            IChainedResolverClass newResolver =
+                chainedResolverClass.GetNewChainedResolverClass().GetNewChainedResolverClass();
+
+            // Assert
+            Assert.AreSame(chainedResolverClass.GetResolver(), newResolver.GetResolver());
+        }
+
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ChainedResolverClassWithResolverConstructorPropegatesResolverDownward() {
+            // Arrange
+            var resolver = new InterfaceResolver();
+            resolver.Register<IChainedResolverClass, ChainedResolverClass>();
+            IChainedResolverClass chainedResolverClass = new ChainedResolverClass(resolver);
+
+            // Act
+            /*IChainedResolverClass newResolver =
+                chainedResolverClass.GetNewChainedResolverClass().GetNewChainedResolverClass();*/
+            IChainedResolverClass newResolver =
+                chainedResolverClass.GetNewChainedResolverClass();
+            newResolver = newResolver.GetNewChainedResolverClass();
+
+            // Assert
+            Assert.AreSame(resolver, newResolver.GetResolver());
+            Assert.AreSame(chainedResolverClass.GetResolver(), newResolver.GetResolver());
+        }
+
+        /************************************************* Nested classes ***********************************************/
+
+        #region Nested type: ChainedResolverClass
+
+        public class ChainedResolverClass : IChainedResolverClass {
+            protected readonly InterfaceResolver Resolver;
+
+            public ChainedResolverClass() {
+                Resolver = new InterfaceResolver();
+                Resolver.Register<IChainedResolverClass, ChainedResolverClass>();
+            }
+
+            public ChainedResolverClass(InterfaceResolver resolver) {
+                Resolver = resolver;
+            }
+
+            #region Implementation of IChainedResolverClass
+
+            public IChainedResolverClass GetNewChainedResolverClass() {
+                return Resolver.Resolve<IChainedResolverClass>();
+            }
+
+            public InterfaceResolver GetResolver() {
+                return Resolver;
+            }
+
+            #endregion
+        }
+
+        #endregion
+
         #region Nested type: Combine
 
         public class Combine : IRootType {
-            private readonly IRootType m1;
-            private readonly IRootType m2;
+            private readonly IRootType _m1;
+            private readonly IRootType _m2;
 
             public Combine(IRootType m1, IRootType m2) {
-                this.m1 = m1;
-                this.m2 = m2;
+                _m1 = m1;
+                _m2 = m2;
             }
 
             #region IRootType Members
 
             public int GetFinalValue() {
-                return this.m1.GetFinalValue() + this.m2.GetFinalValue();
+                return _m1.GetFinalValue() + _m2.GetFinalValue();
             }
 
             public void ChangeValue(int newValue) {
@@ -215,17 +354,17 @@ namespace IocContainer {
             private int _internalValue;
 
             public ConcreteTypeThree(int internalValue) {
-                this._internalValue = internalValue;
+                _internalValue = internalValue;
             }
 
             #region IRootType Members
 
             public int GetFinalValue() {
-                return this._internalValue;
+                return _internalValue;
             }
 
             public void ChangeValue(int newValue) {
-                this._internalValue = newValue;
+                _internalValue = newValue;
             }
 
             #endregion
@@ -239,13 +378,13 @@ namespace IocContainer {
             private readonly int _internalValue;
 
             public ConcreteTypeTwo(int internalValue) {
-                this._internalValue = internalValue;
+                _internalValue = internalValue;
             }
 
             #region IRootType Members
 
             public int GetFinalValue() {
-                return this._internalValue;
+                return _internalValue;
             }
 
             public void ChangeValue(int newValue) {
@@ -253,6 +392,15 @@ namespace IocContainer {
             }
 
             #endregion
+        }
+
+        #endregion
+
+        #region Nested type: IChainedResolverClass
+
+        public interface IChainedResolverClass {
+            IChainedResolverClass GetNewChainedResolverClass();
+            InterfaceResolver GetResolver();
         }
 
         #endregion
@@ -280,13 +428,13 @@ namespace IocContainer {
             private readonly IRootType _nodeType;
 
             public NodeDisplay(IRootType nodeType) {
-                this._nodeType = nodeType;
+                _nodeType = nodeType;
             }
 
             #region IDisplay Members
 
             public string Format(string format) {
-                return this._nodeType.GetFinalValue().ToString(format);
+                return _nodeType.GetFinalValue().ToString(format);
             }
 
             #endregion
