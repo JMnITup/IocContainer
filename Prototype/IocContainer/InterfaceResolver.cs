@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using IocContainer;
@@ -87,19 +88,39 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
             private readonly Dictionary<string, Func<object>> _args;
             private readonly InterfaceResolver _interfaceResolver;
             private readonly string _name;
+            private readonly Type _type;
 
             internal Registration(InterfaceResolver interfaceResolver, string name, Type type) {
                 _interfaceResolver = interfaceResolver;
                 _name = name;
+                _type = type;
 
                 // TODO: Old line - ConstructorInfo c = type.GetConstructors().First();
-                ConstructorInfo c = type.GetConstructor(new[] {typeof(InterfaceResolver)});
+
+                ConstructorInfo c;
+                c = type.GetConstructor(new[] {typeof(InterfaceResolver)});
+                if (c == null) {
+                    c = type.GetConstructor(new Type[] {});
+                }
+                if (c == null) {
+                    c = type.GetConstructors().First();
+                }
+                Debug.Assert(c != null, "Cannot resolve object with no constructors");
+
                 _args = c.GetParameters()
                          .ToDictionary<ParameterInfo, string, Func<object>>(
                              x => x.Name,
                              x =>
-                             (() =>
-                              interfaceResolver.ProviderDictionary[interfaceResolver.NameDictionary[x.ParameterType]]())
+                             (() => {
+                                  Type pType = x.ParameterType;
+                                  if (pType == typeof(InterfaceResolver)) {
+                                      return interfaceResolver;
+                                  }
+                                  string nameMap = interfaceResolver.NameDictionary[pType];
+                                  object provider = interfaceResolver.ProviderDictionary[nameMap]();
+                                  return provider;
+                              }
+                             )
                     );
                 interfaceResolver.ProviderDictionary[name] = () => c.Invoke(_args.Values.Select(x => x()).ToArray());
             }
@@ -145,6 +166,16 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
             /// <returns></returns>
             public Registration WithConstructor(string parameter, object value) {
                 _args[parameter] = () => value;
+                return this;
+            }
+
+            public Registration WithConstructor(Type[] types, object[] values) {
+                Type t = _type;
+                ConstructorInfo c = t.GetConstructor(types);
+                if (c == null) {
+                    throw new RegistrationMissingException("Attempt to initialize " + _type + ":" + _name + " with non-existant public constructor: " + types.ToString(), null);
+                }
+                _interfaceResolver.ProviderDictionary[_name] = () => c.Invoke(values);
                 return this;
             }
         }
