@@ -48,6 +48,7 @@
     <Compile Include="InterfaceResolver.cs" />
     <Compile Include="RegistrationMissingException.cs" />
     <Compile Include="Tests\IocContainerUnitTests.cs" />
+    <Compile Include="Tests\ContainerChaining.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
