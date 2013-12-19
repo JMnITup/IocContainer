@@ -167,7 +167,6 @@ namespace IocContainer.Tests {
 
         /************************************************* Nested classes ***********************************************/
 
-
         #region Nested type: Combine
 
         public class Combine : IRootType {
