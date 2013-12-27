@@ -53,6 +53,20 @@ namespace IocContainer.Tests {
             Assert.AreEqual("InterfaceResolver", instance.Value);
         }
 
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void FirstResolveWithNoDefaultResultsInFirstConstructor() {
+            // Arrange
+            var resolver = new InterfaceResolver();
+            resolver.Register<IConstructorTestClass, ConstructorTestClassWithNoDefault>();
+
+            // Act
+            var instance = resolver.Resolve<IConstructorTestClass>();
+
+            // Assert
+            Assert.AreEqual("string,int(first)", instance.Value);
+        }
 
         /************************************************* Nested classes ***********************************************/
 

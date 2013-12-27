@@ -164,6 +164,39 @@ namespace IocContainer.Tests {
             Assert.AreSame(resolve1, instance);
             Assert.AreEqual(55, resolve1.GetFinalValue());
         }
+        
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void RegisteringClassResolvesCorrectly() {
+            // Arrange
+            var c = new InterfaceResolver();
+            c.Register<IRootType, ConcreteTypeThree>();
+
+            // Act
+            var resolve = c.Resolve<IRootType>();
+
+            // Assert
+            Assert.AreEqual(typeof(ConcreteTypeThree), resolve.GetType());
+        }
+
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ClearRegistrationClearsPreviouslyRegisteredClass() {
+            // Arrange
+            var c = new InterfaceResolver();
+            c.Register<IRootType, ConcreteTypeThree>();
+            c.ClearRegistrations();
+
+            // Act
+            var resolve = c.Resolve<IRootType>();
+
+            // Assert
+            Assert.AreEqual(typeof(ConcreteTypeThree), resolve.GetType());
+            // TODO: This test should fail, because this assert should not be true.  This is a temporary commit prior to fixing that problem
+            Assert.Fail();
+        }
 
         /************************************************* Nested classes ***********************************************/
 
