@@ -11,10 +11,10 @@ namespace IocContainer.Tests {
     public class IocContainerUnitTests {
         [TestMethod]
         [TestCategory("Unit")]
-        public void VerifyAnonymousRegistration() {
+        public void ResolveAnonymousRegistrationWithNoDefinedConstructors() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeOne>();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>();
 
             // Act
             var m = c.Resolve<IRootType>();
@@ -25,10 +25,10 @@ namespace IocContainer.Tests {
 
         [TestMethod]
         [TestCategory("Unit")]
-        public void VerifyNamedRegistration() {
+        public void ResolveNamedRegistrationWithNoDefinedConstructors() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeOne>("named");
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>("named");
 
             // Act
             var m = c.Resolve<IRootType>("named");
@@ -40,10 +40,27 @@ namespace IocContainer.Tests {
 
         [TestMethod]
         [TestCategory("Unit")]
-        public void VerifyAnonymousSubDependency() {
+        public void ResolveSameNamedRegistrationOnDifferentInterfacesWithNoDefinedConstructors() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeOne>();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>("named");
+            c.Register<IRootType2, ConcreteType2WithNoDefinedConstructors>("named");
+
+            // Act
+            var m = c.Resolve<IRootType>("named");
+            var n = c.Resolve<IRootType2>("named");
+
+            // Assert
+            Assert.AreEqual(0, m.GetFinalValue());
+        }
+
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ResolveAnonymousSubDependency() {
+            // Arrange
+            var c = new InterfaceResolver();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>();
             c.Register<IDisplay, NodeDisplay>();
 
             // Act
@@ -55,10 +72,10 @@ namespace IocContainer.Tests {
 
         [TestMethod]
         [TestCategory("Unit")]
-        public void WithConstructorBuildsWithNamedParameter() {
+        public void WithConstructorValueBuildsWithNamedParameter() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeTwo>("named").WithConstructor("internalValue", 5);
+            c.Register<IRootType, ConcreteTypeTwo>("named").WithConstructorValue("internalValue", 5);
 
             // Act
             int i = c.Resolve<IRootType>("named").GetFinalValue();
@@ -72,8 +89,8 @@ namespace IocContainer.Tests {
         public void NamedSubDependencyFunctions() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeTwo>("seven").WithConstructor("internalValue", 7);
-            c.Register<IRootType, ConcreteTypeTwo>("nine").WithConstructor("internalValue", 9);
+            c.Register<IRootType, ConcreteTypeTwo>("seven").WithConstructorValue("internalValue", 7);
+            c.Register<IRootType, ConcreteTypeTwo>("nine").WithConstructorValue("internalValue", 9);
             c.Register<IRootType, Combine>("add").WithDependency("m1", "seven").WithDependency("m2", "nine");
 
             // Act
@@ -89,8 +106,8 @@ namespace IocContainer.Tests {
             // Arrange
             var c = new InterfaceResolver();
             c.Register<IRootType, Combine>("add").WithDependency("m1", "five").WithDependency("m2", "six");
-            c.Register<IRootType, ConcreteTypeTwo>("five").WithConstructor("internalValue", 5);
-            c.Register<IRootType, ConcreteTypeTwo>("six").WithConstructor("internalValue", 6);
+            c.Register<IRootType, ConcreteTypeTwo>("five").WithConstructorValue("internalValue", 5);
+            c.Register<IRootType, ConcreteTypeTwo>("six").WithConstructorValue("internalValue", 6);
 
             // Act
             int i = c.Resolve<IRootType>("add").GetFinalValue();
@@ -105,7 +122,7 @@ namespace IocContainer.Tests {
         public void AnonymousNonSingletonDoNotResolveToSameObject() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeOne>().AsSingleton();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>().AsSingleton();
 
             // Act
             var resolve1 = c.Resolve<IRootType>();
@@ -120,7 +137,7 @@ namespace IocContainer.Tests {
         public void AnonymousSingletonResolvesToSameObject() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeOne>().AsSingleton();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>().AsSingleton();
 
             // Act
             var resolve1 = c.Resolve<IRootType>();
@@ -135,7 +152,7 @@ namespace IocContainer.Tests {
         public void NamedSingletonResolvesToSameObject() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeOne>("namedRegistration").AsSingleton();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>("namedRegistration").AsSingleton();
 
             // Act
             var resolve1 = c.Resolve<IRootType>("namedRegistration");
@@ -164,37 +181,36 @@ namespace IocContainer.Tests {
             Assert.AreSame(resolve1, instance);
             Assert.AreEqual(55, resolve1.GetFinalValue());
         }
-        
+
 
         [TestMethod]
         [TestCategory("Unit")]
         public void RegisteringClassResolvesCorrectly() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeThree>();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>();
 
             // Act
             var resolve = c.Resolve<IRootType>();
 
             // Assert
-            Assert.AreEqual(typeof(ConcreteTypeThree), resolve.GetType());
+            Assert.AreEqual(typeof(ConcreteTypeWithNoDefinedConstructors), resolve.GetType());
         }
 
 
         [TestMethod]
         [TestCategory("Unit")]
+        [ExpectedException(typeof(RegistrationMissingException))]
         public void ClearRegistrationClearsPreviouslyRegisteredClass() {
             // Arrange
             var c = new InterfaceResolver();
-            c.Register<IRootType, ConcreteTypeThree>();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>();
             c.ClearRegistrations();
 
             // Act
             var resolve = c.Resolve<IRootType>();
 
             // Assert
-            Assert.AreEqual(typeof(ConcreteTypeThree), resolve.GetType());
-            // TODO: This test should fail, because this assert should not be true.  This is a temporary commit prior to fixing that problem
             Assert.Fail();
         }
 
@@ -226,10 +242,10 @@ namespace IocContainer.Tests {
 
         #endregion
 
-        #region Nested type: ConcreteTypeOne
+        #region Nested type: ConcreteType2WithNoDefinedConstructors
 
-        public class ConcreteTypeOne : IRootType {
-            #region IRootType Members
+        public class ConcreteType2WithNoDefinedConstructors : IRootType2 {
+            #region IRootType2 Members
 
             public int GetFinalValue() {
                 return 0;
@@ -292,6 +308,24 @@ namespace IocContainer.Tests {
 
         #endregion
 
+        #region Nested type: ConcreteTypeWithNoDefinedConstructors
+
+        public class ConcreteTypeWithNoDefinedConstructors : IRootType {
+            #region IRootType Members
+
+            public int GetFinalValue() {
+                return 0;
+            }
+
+            public void ChangeValue(int newValue) {
+                throw new Exception("Pointless but purposeful disallowing of ChangeValue");
+            }
+
+            #endregion
+        }
+
+        #endregion
+
         #region Nested type: IConstructorTestClass
 
         public interface IConstructorTestClass {
@@ -311,6 +345,15 @@ namespace IocContainer.Tests {
         #region Nested type: IRootType
 
         public interface IRootType {
+            int GetFinalValue();
+            void ChangeValue(int newValue);
+        }
+
+        #endregion
+
+        #region Nested type: IRootType2
+
+        public interface IRootType2 {
             int GetFinalValue();
             void ChangeValue(int newValue);
         }

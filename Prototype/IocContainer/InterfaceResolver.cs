@@ -74,8 +74,14 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
             try {
                 return Resolve<T>(NameDictionary[typeof(T)]);
             } catch (KeyNotFoundException ex) {
+                if (!NameDictionary.ContainsKey(typeof(T))) {
+                    throw new RegistrationMissingException(
+                        "Interface " + typeof(T).FullName + " not registered anonymously, cannot resolve anonymously",
+                        ex);
+                }
                 throw new RegistrationMissingException(
-                    "Interface " + typeof(T).FullName + " not registered, cannot resolve", ex);
+                    "Interface " + typeof(T).FullName +
+                    " not registered or needed constructor value is not defined, cannot resolve", ex);
             }
         }
 
@@ -111,7 +117,9 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
                          .ToDictionary<ParameterInfo, string, Func<object>>(
                              x => x.Name,
                              x =>
-                             (() => {
+                             (() =>
+                              // TODO: Original line - interfaceResolver.ProviderDictionary[interfaceResolver.NameDictionary[x.ParameterType]]()
+                              {
                                   Type pType = x.ParameterType;
                                   if (pType == typeof(InterfaceResolver)) {
                                       return interfaceResolver;
@@ -164,7 +172,7 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
             /// <param name="parameter"></param>
             /// <param name="value"></param>
             /// <returns></returns>
-            public Registration WithConstructor(string parameter, object value) {
+            public Registration WithConstructorValue(string parameter, object value) {
                 _args[parameter] = () => value;
                 return this;
             }
@@ -173,7 +181,9 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
                 Type t = _type;
                 ConstructorInfo c = t.GetConstructor(types);
                 if (c == null) {
-                    throw new RegistrationMissingException("Attempt to initialize " + _type + ":" + _name + " with non-existant public constructor: " + types.ToString(), null);
+                    throw new RegistrationMissingException(
+                        "Attempt to initialize " + _type + ":" + _name + " with non-existant public constructor: " +
+                        types, null);
                 }
                 _interfaceResolver.ProviderDictionary[_name] = () => c.Invoke(values);
                 return this;

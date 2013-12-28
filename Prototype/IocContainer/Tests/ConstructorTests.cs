@@ -53,13 +53,15 @@ namespace IocContainer.Tests {
             Assert.AreEqual("InterfaceResolver", instance.Value);
         }
 
-        
+
         [TestMethod]
         [TestCategory("Unit")]
         public void FirstResolveWithNoDefaultResultsInFirstConstructor() {
             // Arrange
             var resolver = new InterfaceResolver();
-            resolver.Register<IConstructorTestClass, ConstructorTestClassWithNoDefault>();
+            resolver.Register<IConstructorTestClass, ConstructorTestClassWithNoDefault>()
+                    .WithConstructorValue("string1", "test")
+                    .WithConstructorValue("int1", 5);
 
             // Act
             var instance = resolver.Resolve<IConstructorTestClass>();
