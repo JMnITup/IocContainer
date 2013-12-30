@@ -84,8 +84,10 @@ namespace IocContainer.Tests {
             Assert.AreEqual(5, i);
         }
 
+        /* - Removed because WithDependency was removed for now
         [TestMethod]
         [TestCategory("Unit")]
+        [Ignore]
         public void NamedSubDependencyFunctions() {
             // Arrange
             var c = new InterfaceResolver();
@@ -102,6 +104,7 @@ namespace IocContainer.Tests {
 
         [TestMethod]
         [TestCategory("Unit")]
+        [Ignore]
         public void NamedSubDependencyOutOfOrderWorks() {
             // Arrange
             var c = new InterfaceResolver();
@@ -115,6 +118,7 @@ namespace IocContainer.Tests {
             // Assert
             Assert.AreEqual(11, i);
         }
+         */
 
 
         [TestMethod]
