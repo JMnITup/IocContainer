@@ -60,7 +60,12 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
         /// <param name="name">Named registration to use</param>
         /// <returns>Instance of object registered to interface and name</returns>
         public T Resolve<T>(string name) where T : class {
-            return (T) ProviderDictionary[new Tuple<Type, string>(typeof(T), name)]();
+            try {
+                // TODO: Load test this to see if handling adds significant overhead - if so, unneeded
+                return (T) ProviderDictionary[new Tuple<Type, string>(typeof(T), name)]();
+            } catch (KeyNotFoundException ex) {
+                throw new RegistrationMissingException("Interface " + typeof(T).FullName + ":" + name + " not registered, cannot resolve", ex);
+            }
         }
 
         /// <summary>

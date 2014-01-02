@@ -1,5 +1,6 @@
 ﻿#region Using declarations
 
+using System;
 using Bridgepoint.Enterprise.Common.IocContainer;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -68,6 +69,23 @@ namespace IocContainer.Tests {
 
             // Assert
             Assert.AreEqual("string,int(first)", instance.Value);
+        }
+
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        [ExpectedException(typeof(RegistrationMissingException))]
+        public void UnregisteredConstructorThrowsRegistrationException()
+        {
+            // Arrange
+            var c = new InterfaceResolver();
+            c.Register<IConstructorTestClass, ConstructorTestClassOnlyDefault>().WithConstructor(new Type[] {typeof(string)}, new object[] {""});
+
+            // Act
+            var resolve = c.Resolve<IConstructorTestClass>();
+
+            // Assert
+            Assert.Fail("An exception was not thrown when it should have been");
         }
 
         /************************************************* Nested classes ***********************************************/

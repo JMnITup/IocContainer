@@ -218,6 +218,36 @@ namespace IocContainer.Tests {
             Assert.Fail();
         }
 
+        [TestMethod]
+        [TestCategory("Unit")]
+        [ExpectedException(typeof(RegistrationMissingException))]
+        public void UnregisteredNamedClassWithRegisteredAnonThrowsException() {
+            // Arrange
+            var c = new InterfaceResolver();
+            c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>();
+
+            // Act
+            var resolve = c.Resolve<IRootType>("unregisteredName");
+
+            // Assert
+            Assert.Fail("An exception was not thrown when it should have been");
+        }
+
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        [ExpectedException(typeof(RegistrationMissingException))]
+        public void UnregisteredNamedClassWithoutRegisteredAnonThrowsException() {
+            // Arrange
+            var c = new InterfaceResolver();
+
+            // Act
+            var resolve = c.Resolve<IRootType>("unregisteredName");
+
+            // Assert
+            Assert.Fail("An exception was not thrown when it should have been");
+        }
+
         /************************************************* Nested classes ***********************************************/
 
         #region Nested type: Combine
