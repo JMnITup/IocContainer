@@ -8,8 +8,8 @@ Global
 		SccNumberOfProjects = 2
 		SccEnterpriseProvider = {4CA58AB2-18FA-4F8D-95D4-32DDF27D184C}
 		SccTeamFoundationServer = http://bpeca01-tfs02.bridgepoint.local:8080/tfs/development
+		SccProjectUniqueName0 = IocContainer.csproj
 		SccLocalPath0 = .
-		SccProjectUniqueName1 = IocContainer.csproj
 		SccLocalPath1 = .
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

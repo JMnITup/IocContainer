@@ -1,27 +1,31 @@
-﻿#region
+﻿#region Using declarations
 
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using IocContainer;
 
 #endregion
 
 namespace Bridgepoint.Enterprise.Common.IocContainer {
     /// <summary>
-    /// Instanced interface resolver used to register and resolve requests for interface implementations - used by Assembly container
+    ///     Instanced interface resolver used to register and resolve requests for interface implementations - used by Assembly container
     /// </summary>
     public class InterfaceResolver {
         protected readonly ConcurrentDictionary<Type, string> NameDictionary = new ConcurrentDictionary<Type, string>();
-        protected readonly ConcurrentDictionary<string, Func<object>> ProviderDictionary = new ConcurrentDictionary<string, Func<object>>();
+
+        protected readonly ConcurrentDictionary<Tuple<Type, string>, Func<object>> ProviderDictionary =
+            new ConcurrentDictionary<Tuple<Type, string>, Func<object>>();
 
         /// <summary>
         ///     Clears all registrations
         /// </summary>
         public void ClearRegistrations() {
-            this.NameDictionary.Clear();
-            this.ProviderDictionary.Clear();
+            NameDictionary.Clear();
+            ProviderDictionary.Clear();
         }
 
         /// <summary>
@@ -31,7 +35,7 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
         /// <typeparam name="TC">Concrete class to resolve to</typeparam>
         /// <returns>Registration object allowing for fluent interface modification of registration</returns>
         public Registration Register<TS, TC>() where TC : TS {
-            return this.Register<TS, TC>(typeof(TS).FullName);
+            return Register<TS, TC>(typeof(TS).FullName);
         }
 
         /// <summary>
@@ -42,10 +46,10 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
         /// <typeparam name="TC">Concrete class to resolve to</typeparam>
         /// <returns>Registration object allowing for fluent interface modification of registration</returns>
         public Registration Register<TS, TC>(string name) where TC : TS {
-            if (!this.NameDictionary.ContainsKey(typeof(TS))) {
-                this.NameDictionary[typeof(TS)] = name;
+            if (!NameDictionary.ContainsKey(typeof(TS))) {
+                NameDictionary[typeof(TS)] = name;
             }
-            return new Registration(this, name, typeof(TC));
+            return new Registration(this, name, typeof(TC), typeof(TS));
         }
 
 
@@ -56,16 +60,34 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
         /// <param name="name">Named registration to use</param>
         /// <returns>Instance of object registered to interface and name</returns>
         public T Resolve<T>(string name) where T : class {
-            return (T) this.ProviderDictionary[name]();
+            try {
+                // TODO: Load test this to see if handling adds significant overhead - if so, unneeded
+                return (T) ProviderDictionary[new Tuple<Type, string>(typeof(T), name)]();
+            } catch (KeyNotFoundException ex) {
+                throw new RegistrationMissingException("Interface " + typeof(T).FullName + ":" + name + " not registered, cannot resolve", ex);
+            }
         }
 
         /// <summary>
         ///     Resolves an interface request to the registered class
         /// </summary>
         /// <typeparam name="T">Interface to resolve</typeparam>
+        /// <exception cref="RegistrationMissingException"></exception>
         /// <returns>Instance of object registered to interface</returns>
         public T Resolve<T>() where T : class {
-            return this.Resolve<T>(this.NameDictionary[typeof(T)]);
+            // TODO: performance test catching this versus throwing as a KeyNotFoundException.  If difference is significant enough, it might be worth just throwing without handling
+            try {
+                return Resolve<T>(NameDictionary[typeof(T)]);
+            } catch (KeyNotFoundException ex) {
+                if (!NameDictionary.ContainsKey(typeof(T))) {
+                    throw new RegistrationMissingException(
+                        "Interface " + typeof(T).FullName + " not registered anonymously, cannot resolve anonymously",
+                        ex);
+                }
+                throw new RegistrationMissingException(
+                    "Interface " + typeof(T).FullName +
+                    " not registered or needed constructor value is not defined, cannot resolve", ex);
+            }
         }
 
         #region Nested type: Registration
@@ -77,18 +99,45 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
             private readonly Dictionary<string, Func<object>> _args;
             private readonly InterfaceResolver _interfaceResolver;
             private readonly string _name;
+            private readonly Type _concreteType;
+            private readonly Type _interfaceType;
 
-            internal Registration(InterfaceResolver interfaceResolver, string name, Type type) {
-                this._interfaceResolver = interfaceResolver;
-                this._name = name;
+            internal Registration(InterfaceResolver interfaceResolver, string name, Type concreteType, Type interfaceType) {
+                _interfaceResolver = interfaceResolver;
+                _name = name;
+                _concreteType = concreteType;
+                _interfaceType = interfaceType;
 
-                ConstructorInfo c = type.GetConstructors().First();
-                this._args = c.GetParameters()
-                              .ToDictionary<ParameterInfo, string, Func<object>>(
-                                  x => x.Name,
-                                  x => (() => interfaceResolver.ProviderDictionary[interfaceResolver.NameDictionary[x.ParameterType]]())
+                // TODO: Old line - ConstructorInfo c = concreteType.GetConstructors().First();
+
+                ConstructorInfo c;
+                c = concreteType.GetConstructor(new[] {typeof(InterfaceResolver)});
+                if (c == null) {
+                    c = concreteType.GetConstructor(new Type[] {});
+                }
+                if (c == null) {
+                    c = concreteType.GetConstructors().First();
+                }
+                Debug.Assert(c != null, "Cannot resolve object with no constructors");
+
+                _args = c.GetParameters()
+                         .ToDictionary<ParameterInfo, string, Func<object>>(
+                             x => x.Name,
+                             x =>
+                             (() =>
+                              // TODO: Original line - interfaceResolver.ProviderDictionary[interfaceResolver.NameDictionary[x.ParameterType]]()
+                              {
+                                  Type pType = x.ParameterType;
+                                  if (pType == typeof(InterfaceResolver)) {
+                                      return interfaceResolver;
+                                  }
+                                  string nameMap = interfaceResolver.NameDictionary[pType];
+                                  object provider = interfaceResolver.ProviderDictionary[new Tuple<Type, string>(pType, nameMap)]();
+                                  return provider;
+                              }
+                             )
                     );
-                interfaceResolver.ProviderDictionary[name] = () => c.Invoke(this._args.Values.Select(x => x()).ToArray());
+                interfaceResolver.ProviderDictionary[new Tuple<Type, string>(interfaceType, name)] = () => c.Invoke(_args.Values.Select(x => x()).ToArray());
             }
 
 
@@ -98,7 +147,7 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
             /// <param name="instance">Object instance to register</param>
             /// <returns>Registration</returns>
             public Registration AsInstance(object instance) {
-                this._interfaceResolver.ProviderDictionary[this._name] = () => instance;
+                _interfaceResolver.ProviderDictionary[new Tuple<Type, string>(_interfaceType, _name)] = () => instance;
                 return this;
             }
 
@@ -108,21 +157,23 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
             /// <returns>Registration</returns>
             public Registration AsSingleton() {
                 object value = null;
-                Func<object> service = this._interfaceResolver.ProviderDictionary[this._name];
-                this._interfaceResolver.ProviderDictionary[this._name] = () => value ?? (value = service());
+                Func<object> service = _interfaceResolver.ProviderDictionary[new Tuple<Type, string>(_interfaceType, _name)];
+                _interfaceResolver.ProviderDictionary[new Tuple<Type, string>(_interfaceType, _name)] = () => value ?? (value = service());
                 return this;
             }
 
-            /// <summary>
+            /* TODO: Rendered non-functional with changes, making functional requires slight re-tooling but I don't see a need to implement currently
+             * /// <summary>
             ///     Defines internal dependency to use for resolution within object resolution
             /// </summary>
             /// <param name="parameter"></param>
             /// <param name="component"></param>
             /// <returns></returns>
             public Registration WithDependency(string parameter, string component) {
-                this._args[parameter] = () => this._interfaceResolver.ProviderDictionary[component]();
+                // TODO: Find dependency name matching specified component - _args[parameter] = () => _interfaceResolver.ProviderDictionary[component]();
                 return this;
             }
+             */
 
             /// <summary>
             ///     Registers a class with parameters matching the First constructor of the concrete class - resolved instances will pass these parameters into constructor on resolution
@@ -130,8 +181,20 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
             /// <param name="parameter"></param>
             /// <param name="value"></param>
             /// <returns></returns>
-            public Registration WithConstructor(string parameter, object value) {
-                this._args[parameter] = () => value;
+            public Registration WithConstructorValue(string parameter, object value) {
+                _args[parameter] = () => value;
+                return this;
+            }
+
+            public Registration WithConstructor(Type[] types, object[] values) {
+                Type t = _concreteType;
+                ConstructorInfo c = t.GetConstructor(types);
+                if (c == null) {
+                    throw new RegistrationMissingException(
+                        "Attempt to initialize " + _concreteType + ":" + _name + " with non-existant public constructor: " +
+                        types, null);
+                }
+                _interfaceResolver.ProviderDictionary[new Tuple<Type, string>(_interfaceType, _name)] = () => c.Invoke(values);
                 return this;
             }
         }
