@@ -162,6 +162,16 @@ namespace Bridgepoint.Enterprise.Common.IocContainer {
                 return this;
             }
 
+            /// <summary>
+            ///     Registers the class resolution as a function with a Func&lt;object&gt; return value
+            /// </summary>
+            /// <param name="function">Function to perform when type is resolved, must be a Func&lt;object&gt;</param>
+            /// <returns>Registration</returns>
+            public Registration AsDelegate(Func<object> function) {
+                _interfaceResolver.ProviderDictionary[new Tuple<Type, string>(_interfaceType, _name)] = function;
+                return this;
+            }
+
             /* TODO: Rendered non-functional with changes, making functional requires slight re-tooling but I don't see a need to implement currently
              * /// <summary>
             ///     Defines internal dependency to use for resolution within object resolution

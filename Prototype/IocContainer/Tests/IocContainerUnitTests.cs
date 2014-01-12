@@ -248,7 +248,72 @@ namespace IocContainer.Tests {
             Assert.Fail("An exception was not thrown when it should have been");
         }
 
-        /************************************************* Nested classes ***********************************************/
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void RegisterAsDelegate() {
+            // Arrange
+            var c = new InterfaceResolver();
+
+
+            // Act
+            InterfaceResolver.Registration registration = c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>().AsDelegate(() => null);
+
+            // Assert
+            Assert.AreEqual(typeof(InterfaceResolver.Registration), registration.GetType());
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ResolveRegisteredDelegate() {
+            // Arrange
+            var c = new InterfaceResolver();
+            const int i = 84;
+            c.Register<IRootType, ConcreteTypeThree>().AsDelegate(() => new ConcreteTypeThree(i));
+
+            // Act
+            var resolve = c.Resolve<IRootType>();
+
+            // Assert
+            Assert.AreEqual(typeof(ConcreteTypeThree), resolve.GetType());
+            Assert.AreEqual(i, resolve.GetFinalValue());
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ResolveRegisteredDelegateWithNewFunctionReturnsDistinctObjects() {
+            // Arrange
+            var c = new InterfaceResolver();
+            const int i = 84;
+            c.Register<IRootType, ConcreteTypeThree>().AsDelegate(() => new ConcreteTypeThree(i));
+
+            // Act
+            var resolve = c.Resolve<IRootType>();
+            var resolve2 = c.Resolve<IRootType>();
+
+            // Assert
+            Assert.AreNotSame(resolve, resolve2);
+            Assert.AreEqual(i, resolve.GetFinalValue());
+            Assert.AreEqual(i, resolve2.GetFinalValue());
+        }
+
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ResolveRegisteredDelegateWithSpecificObjectReturnsSameObject() {
+            // Arrange
+            var c = new InterfaceResolver();
+            const int i = 84;
+            var d = new ConcreteTypeThree(i);
+            c.Register<IRootType, ConcreteTypeThree>().AsDelegate(() => d);
+
+            // Act
+            var resolve = c.Resolve<IRootType>();
+            var resolve2 = c.Resolve<IRootType>();
+
+            // Assert
+            Assert.AreSame(resolve, resolve2);
+            Assert.AreEqual(i, resolve.GetFinalValue());
+            Assert.AreEqual(i, resolve2.GetFinalValue());
+        }
 
         #region Nested type: Combine
 
@@ -413,5 +478,7 @@ namespace IocContainer.Tests {
         }
 
         #endregion
+
+        /************************************************* Nested classes ***********************************************/
     }
 }
