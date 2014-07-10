@@ -1,4 +1,4 @@
-﻿namespace Bridgepoint.Enterprise.Common.IocContainer {
+﻿namespace IocContainer {
 
     #region
 

@@ -6,11 +6,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using IocContainer;
 
 #endregion
 
-namespace Bridgepoint.Enterprise.Common.IocContainer {
+namespace IocContainer {
     /// <summary>
     ///     Instanced interface resolver used to register and resolve requests for interface implementations - used by Assembly container
     /// </summary>
