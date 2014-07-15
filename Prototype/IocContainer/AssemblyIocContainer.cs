@@ -1,4 +1,4 @@
-﻿namespace IocContainer {
+﻿namespace OIM2.Core.IocContainer {
 
     #region
 
@@ -39,7 +39,8 @@
         }
 
         /// <summary>
-        ///     Registers an interface to a concrete class resolution using a specific name, allows for registering the same interface to different concrete classes based on context
+        ///     Registers an interface to a concrete class resolution using a specific name, allows for registering the same
+        ///     interface to different concrete classes based on context
         /// </summary>
         /// <param name="name">Name to use</param>
         /// <typeparam name="TS">Interface to be registered</typeparam>

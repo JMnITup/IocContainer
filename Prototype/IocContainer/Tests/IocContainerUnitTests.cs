@@ -1,11 +1,11 @@
-﻿#region Using declarations
+﻿#region Using
 
 using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 #endregion
 
-namespace IocContainer.Tests {
+namespace OIM2.Core.IocContainer.Tests {
     [TestClass]
     public class IocContainerUnitTests {
         [TestMethod]
@@ -197,13 +197,13 @@ namespace IocContainer.Tests {
             var resolve = c.Resolve<IRootType>();
 
             // Assert
-            Assert.AreEqual(typeof(ConcreteTypeWithNoDefinedConstructors), resolve.GetType());
+            Assert.AreEqual(typeof (ConcreteTypeWithNoDefinedConstructors), resolve.GetType());
         }
 
 
         [TestMethod]
         [TestCategory("Unit")]
-        [ExpectedException(typeof(RegistrationMissingException))]
+        [ExpectedException(typeof (RegistrationMissingException))]
         public void ClearRegistrationClearsPreviouslyRegisteredClass() {
             // Arrange
             var c = new InterfaceResolver();
@@ -219,7 +219,7 @@ namespace IocContainer.Tests {
 
         [TestMethod]
         [TestCategory("Unit")]
-        [ExpectedException(typeof(RegistrationMissingException))]
+        [ExpectedException(typeof (RegistrationMissingException))]
         public void UnregisteredNamedClassWithRegisteredAnonThrowsException() {
             // Arrange
             var c = new InterfaceResolver();
@@ -235,7 +235,7 @@ namespace IocContainer.Tests {
 
         [TestMethod]
         [TestCategory("Unit")]
-        [ExpectedException(typeof(RegistrationMissingException))]
+        [ExpectedException(typeof (RegistrationMissingException))]
         public void UnregisteredNamedClassWithoutRegisteredAnonThrowsException() {
             // Arrange
             var c = new InterfaceResolver();
@@ -258,7 +258,7 @@ namespace IocContainer.Tests {
             InterfaceResolver.Registration registration = c.Register<IRootType, ConcreteTypeWithNoDefinedConstructors>().AsDelegate(() => null);
 
             // Assert
-            Assert.AreEqual(typeof(InterfaceResolver.Registration), registration.GetType());
+            Assert.AreEqual(typeof (InterfaceResolver.Registration), registration.GetType());
         }
 
         [TestMethod]
@@ -273,7 +273,7 @@ namespace IocContainer.Tests {
             var resolve = c.Resolve<IRootType>();
 
             // Assert
-            Assert.AreEqual(typeof(ConcreteTypeThree), resolve.GetType());
+            Assert.AreEqual(typeof (ConcreteTypeThree), resolve.GetType());
             Assert.AreEqual(i, resolve.GetFinalValue());
         }
 

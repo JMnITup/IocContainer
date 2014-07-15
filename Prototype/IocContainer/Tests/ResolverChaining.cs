@@ -1,10 +1,10 @@
-﻿#region Using declarations
+﻿#region Using
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 #endregion
 
-namespace IocContainer.Tests {
+namespace OIM2.Core.IocContainer.Tests {
     [TestClass]
     public class ResolverChaining {
         [TestMethod]
@@ -68,7 +68,7 @@ namespace IocContainer.Tests {
 
         [TestMethod]
         [TestCategory("Unit")]
-        [ExpectedException(typeof(RegistrationMissingException))]
+        [ExpectedException(typeof (RegistrationMissingException))]
         public void ChainedResolverClassWithResolverWithUnregisteredDependencyFails() {
             // Arrange
             var resolver = new InterfaceResolver();
@@ -117,9 +117,6 @@ namespace IocContainer.Tests {
             Assert.AreSame(chainedResolverClass.GetResolver(), newResolver.GetResolver());
         }
 
-
-        /************************************************* Nested classes ***********************************************/
-
         #region Nested type: ChainedResolverClass
 
         public class ChainedResolverClass : IChainedResolverClass {
@@ -158,5 +155,7 @@ namespace IocContainer.Tests {
         }
 
         #endregion
+
+        /************************************************* Nested classes ***********************************************/
     }
 }

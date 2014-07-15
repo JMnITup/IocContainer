@@ -1,4 +1,4 @@
-﻿#region Using declarations
+﻿#region Using
 
 using System;
 using System.Collections.Concurrent;
@@ -9,9 +9,10 @@ using System.Reflection;
 
 #endregion
 
-namespace IocContainer {
+namespace OIM2.Core.IocContainer {
     /// <summary>
-    ///     Instanced interface resolver used to register and resolve requests for interface implementations - used by Assembly container
+    ///     Instanced interface resolver used to register and resolve requests for interface implementations - used by Assembly
+    ///     container
     /// </summary>
     public class InterfaceResolver {
         protected readonly ConcurrentDictionary<Type, string> NameDictionary = new ConcurrentDictionary<Type, string>();
@@ -34,21 +35,22 @@ namespace IocContainer {
         /// <typeparam name="TC">Concrete class to resolve to</typeparam>
         /// <returns>Registration object allowing for fluent interface modification of registration</returns>
         public Registration Register<TS, TC>() where TC : TS {
-            return Register<TS, TC>(typeof(TS).FullName);
+            return Register<TS, TC>(typeof (TS).FullName);
         }
 
         /// <summary>
-        ///     Registers an interface to a concrete class resolution using a specific name, allows for registering the same interface to different concrete classes based on context
+        ///     Registers an interface to a concrete class resolution using a specific name, allows for registering the same
+        ///     interface to different concrete classes based on context
         /// </summary>
         /// <param name="name">Name to use</param>
         /// <typeparam name="TS">Interface to be registered</typeparam>
         /// <typeparam name="TC">Concrete class to resolve to</typeparam>
         /// <returns>Registration object allowing for fluent interface modification of registration</returns>
         public Registration Register<TS, TC>(string name) where TC : TS {
-            if (!NameDictionary.ContainsKey(typeof(TS))) {
-                NameDictionary[typeof(TS)] = name;
+            if (!NameDictionary.ContainsKey(typeof (TS))) {
+                NameDictionary[typeof (TS)] = name;
             }
-            return new Registration(this, name, typeof(TC), typeof(TS));
+            return new Registration(this, name, typeof (TC), typeof (TS));
         }
 
 
@@ -61,9 +63,9 @@ namespace IocContainer {
         public T Resolve<T>(string name) where T : class {
             try {
                 // TODO: Load test this to see if handling adds significant overhead - if so, unneeded
-                return (T) ProviderDictionary[new Tuple<Type, string>(typeof(T), name)]();
+                return (T) ProviderDictionary[new Tuple<Type, string>(typeof (T), name)]();
             } catch (KeyNotFoundException ex) {
-                throw new RegistrationMissingException("Interface " + typeof(T).FullName + ":" + name + " not registered, cannot resolve", ex);
+                throw new RegistrationMissingException("Interface " + typeof (T).FullName + ":" + name + " not registered, cannot resolve", ex);
             }
         }
 
@@ -76,15 +78,15 @@ namespace IocContainer {
         public T Resolve<T>() where T : class {
             // TODO: performance test catching this versus throwing as a KeyNotFoundException.  If difference is significant enough, it might be worth just throwing without handling
             try {
-                return Resolve<T>(NameDictionary[typeof(T)]);
+                return Resolve<T>(NameDictionary[typeof (T)]);
             } catch (KeyNotFoundException ex) {
-                if (!NameDictionary.ContainsKey(typeof(T))) {
+                if (!NameDictionary.ContainsKey(typeof (T))) {
                     throw new RegistrationMissingException(
-                        "Interface " + typeof(T).FullName + " not registered anonymously, cannot resolve anonymously",
+                        "Interface " + typeof (T).FullName + " not registered anonymously, cannot resolve anonymously",
                         ex);
                 }
                 throw new RegistrationMissingException(
-                    "Interface " + typeof(T).FullName +
+                    "Interface " + typeof (T).FullName +
                     " not registered or needed constructor value is not defined, cannot resolve", ex);
             }
         }
@@ -92,14 +94,15 @@ namespace IocContainer {
         #region Nested type: Registration
 
         /// <summary>
-        ///     Return type allowing for fluent interface usage of resolve syntax - e.g. Container.Register<ISomeInterface>.AsInstance(MockInstance);
+        ///     Return type allowing for fluent interface usage of resolve syntax - e.g. Container.Register
+        ///     <ISomeInterface>.AsInstance(MockInstance);
         /// </summary>
         public class Registration {
             private readonly Dictionary<string, Func<object>> _args;
-            private readonly InterfaceResolver _interfaceResolver;
-            private readonly string _name;
             private readonly Type _concreteType;
+            private readonly InterfaceResolver _interfaceResolver;
             private readonly Type _interfaceType;
+            private readonly string _name;
 
             internal Registration(InterfaceResolver interfaceResolver, string name, Type concreteType, Type interfaceType) {
                 _interfaceResolver = interfaceResolver;
@@ -110,7 +113,7 @@ namespace IocContainer {
                 // TODO: Old line - ConstructorInfo c = concreteType.GetConstructors().First();
 
                 ConstructorInfo c;
-                c = concreteType.GetConstructor(new[] {typeof(InterfaceResolver)});
+                c = concreteType.GetConstructor(new[] {typeof (InterfaceResolver)});
                 if (c == null) {
                     c = concreteType.GetConstructor(new Type[] {});
                 }
@@ -120,21 +123,21 @@ namespace IocContainer {
                 Debug.Assert(c != null, "Cannot resolve object with no constructors");
 
                 _args = c.GetParameters()
-                         .ToDictionary<ParameterInfo, string, Func<object>>(
-                             x => x.Name,
-                             x =>
-                             (() =>
-                              // TODO: Original line - interfaceResolver.ProviderDictionary[interfaceResolver.NameDictionary[x.ParameterType]]()
-                              {
-                                  Type pType = x.ParameterType;
-                                  if (pType == typeof(InterfaceResolver)) {
-                                      return interfaceResolver;
-                                  }
-                                  string nameMap = interfaceResolver.NameDictionary[pType];
-                                  object provider = interfaceResolver.ProviderDictionary[new Tuple<Type, string>(pType, nameMap)]();
-                                  return provider;
-                              }
-                             )
+                    .ToDictionary<ParameterInfo, string, Func<object>>(
+                        x => x.Name,
+                        x =>
+                            (() =>
+                                // TODO: Original line - interfaceResolver.ProviderDictionary[interfaceResolver.NameDictionary[x.ParameterType]]()
+                            {
+                                Type pType = x.ParameterType;
+                                if (pType == typeof (InterfaceResolver)) {
+                                    return interfaceResolver;
+                                }
+                                string nameMap = interfaceResolver.NameDictionary[pType];
+                                object provider = interfaceResolver.ProviderDictionary[new Tuple<Type, string>(pType, nameMap)]();
+                                return provider;
+                            }
+                                )
                     );
                 interfaceResolver.ProviderDictionary[new Tuple<Type, string>(interfaceType, name)] = () => c.Invoke(_args.Values.Select(x => x()).ToArray());
             }
@@ -151,7 +154,8 @@ namespace IocContainer {
             }
 
             /// <summary>
-            ///     Registers the class as a singleton - first request will instantiate the class, all further resolves will return the same instance
+            ///     Registers the class as a singleton - first request will instantiate the class, all further resolves will return the
+            ///     same instance
             /// </summary>
             /// <returns>Registration</returns>
             public Registration AsSingleton() {
@@ -185,7 +189,8 @@ namespace IocContainer {
              */
 
             /// <summary>
-            ///     Registers a class with parameters matching the First constructor of the concrete class - resolved instances will pass these parameters into constructor on resolution
+            ///     Registers a class with parameters matching the First constructor of the concrete class - resolved instances will
+            ///     pass these parameters into constructor on resolution
             /// </summary>
             /// <param name="parameter"></param>
             /// <param name="value"></param>
